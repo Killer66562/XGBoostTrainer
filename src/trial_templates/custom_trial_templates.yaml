@@ -1,0 +1,29 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: custom-trial-templates
+  namespace: kubeflow
+  labels:
+    katib.kubeflow.org/component: trial-templates
+data:
+  xgboostTemplate: |-
+    apiVersion: batch/v1
+    kind: Job
+    spec:
+      template:
+        metadata:
+          annotations:
+            "sidecar.istio.io/inject": "false"
+        spec:
+          containers:
+            - name: training-container
+              image: docker.io/killer66562/xgboost-trainer:latest
+              command:
+                - "python3"
+                - "/opt/xgboost/train.py"
+                - "--lr=${trialParameters.learningRate}"
+                - "--ne=${trialParameters.nEstimators}"
+                - "--booster=${trialParameters.booster}"
+                - "--rs-${trialParameters.randomState}"
+                - "--device=cuda"
+          restartPolicy: Never
