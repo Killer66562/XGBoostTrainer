@@ -23,7 +23,7 @@ data:
                 - "/opt/xgboost/train.py"
                 - "--lr=${trialParameters.learningRate}"
                 - "--ne=${trialParameters.nEstimators}"
-                - "--rs-${trialParameters.randomState}"
+                - "--rs=${trialParameters.randomState}"
                 - "--booster=${trialParameters.booster}"
                 - "--device=cuda"
                 - "--x-train-path=datasets/x_train.csv"
