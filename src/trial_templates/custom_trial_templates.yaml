@@ -26,8 +26,8 @@ data:
                 - "--rs=${trialParameters.randomState}"
                 - "--booster=${trialParameters.booster}"
                 - "--device=cuda"
-                - "--x-train-path=datasets/x_train.csv"
-                - "--x-test-path=datasets/x_test.csv"
-                - "--y-train-path=datasets/y_train.csv"
-                - "--y-test-path=datasets/y_test.csv"
+                - "--x_train_path=datasets/x_train.csv"
+                - "--x_test_path=datasets/x_test.csv"
+                - "--y_train_path=datasets/y_train.csv"
+                - "--y_test_path=datasets/y_test.csv"
           restartPolicy: Never
