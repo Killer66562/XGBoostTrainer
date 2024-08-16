@@ -1,31 +1,30 @@
-import typing
+from typing import Any
+from xgboost.callback import TrainingCallback
+
 import argparse
 import logging
 import sklearn.metrics
 import sklearn.model_selection
 import xgboost
-import xgboost.callback
-import pandas as pd
 import sklearn
+import pandas as pd
 
 
-class CustomCallback(xgboost.callback.TrainingCallback):
-    def __init__(self, iters_per_log: int, x_test_df, y_test_df) -> None:
+class CustomCallback(TrainingCallback):
+    def __init__(self, iters_per_log: int, max_iters: int) -> None:
         super().__init__()
         self._iters_per_log = iters_per_log
-        self._x_test_df = x_test_df
-        self._y_test_df = y_test_df
+        self._max_iters = max_iters
 
-    def after_iteration(self, model: typing.Any, epoch: int, evals_log: xgboost.callback.Dict[str, xgboost.callback.Dict[str, xgboost.callback.List[float] | xgboost.callback.List[xgboost.callback.Tuple[float]]]]) -> bool:
+    def after_iteration(self, model: Any, epoch: int, evals_log: xgboost.callback.Dict[str, xgboost.callback.Dict[str, xgboost.callback.List[float] | xgboost.callback.List[xgboost.callback.Tuple[float]]]]) -> bool:
         if epoch % self._iters_per_log == 0:
-            x_test_matrix = xgboost.DMatrix(data=self._x_test_df.values)
-            y_pred = model.predict(x_test_matrix)
-            logging.info(y_pred)
+            logging.info(f"epoch: {epoch} / {self._max_iters}")
+        return False
 
 
 def main():
     '''
-    Mount the datasets folder to /mnt/datasets.
+    Default: read datasets from /mnt/datasets.
     These files should exist.
     + /mnt/datasets/x_train.csv
     + /mnt/datasets/y_train.csv
@@ -38,12 +37,20 @@ def main():
                         help="learning rate (default: 0.01)")
     parser.add_argument("--ne", type=int, default=1000, metavar="NE", 
                         help="n estimators (default:1000)")
-    parser.add_argument("--booster", type=str, choices=["gbtree", "gblinear", "dart"], default="gbtree", 
-                        help="Choose the booster", metavar="B")
     parser.add_argument("--rs", type=int, default=1, metavar="RS",
                         help="random state (default: 1)")
+    parser.add_argument("--booster", type=str, choices=["gbtree", "gblinear", "dart"], default="gbtree", 
+                        help="Choose the booster", metavar="B")
     parser.add_argument("--device", type=str, choices=["cpu", "gpu", "cuda"], default="cuda", 
                         help="Choose the device", metavar="DEV")
+    parser.add_argument("--x_train_path", type=str, default="datasets/x_train.csv",
+                        help="Assign the path of x_train_csv", metavar="x-train-path")
+    parser.add_argument("--x_test_path", type=str, default="datasets/x_test.csv",
+                        help="Assign the path of x_train_csv", metavar="x-test-path")
+    parser.add_argument("--y_train_path", type=str, default="datasets/y_train.csv",
+                        help="Assign the path of x_train_csv", metavar="y-train-path")
+    parser.add_argument("--y_test_path", type=str, default="datasets/y_test.csv",
+                        help="Assign the path of x_train_csv", metavar="y-test-path")
 
     args = parser.parse_args()
 
@@ -52,26 +59,29 @@ def main():
     logging.basicConfig(
         format="%(asctime)s %(levelname)-8s %(message)s",
         datefmt="%Y-%m-%dT%H:%M:%SZ",
-        level=logging.DEBUG)
+        level=logging.DEBUG
+    )
     
-    x_train_df = pd.read_csv("/mnt/datasets/x_train.csv")
-    y_train_df = pd.read_csv("/mnt/datasets/y_train.csv")
-    x_test_df = pd.read_csv("/mnt/datasets/x_test.csv")
-    y_test_df = pd.read_csv("/mnt/datasets/y_test.csv")
+    x_train_df = pd.read_csv(args.x_train_path)
+    y_train_df = pd.read_csv(args.y_train_path)
+    x_test_df = pd.read_csv(args.x_test_path)
+    y_test_df = pd.read_csv(args.y_test_path)
 
     model = xgboost.XGBClassifier(
         n_estimators=args.ne, 
         learning_rate=args.lr, 
         booster=args.booster, 
         device=args.device, 
-        callbacks=[CustomCallback(iters_per_log=100, x_test_df=x_test_df, y_test_df=y_test_df)]
+        callbacks=[CustomCallback(iters_per_log=100, max_iters=args.ne)]
     )
     model.fit(x_train_df.values, y_train_df.values)
+    
+    logging.info("Done!")
 
     y_pred = model.predict(x_test_df.values)
     accuracy = sklearn.metrics.accuracy_score(y_test_df.values, y_pred)
-    msg = f"accuracy={accuracy}\n"
-    logging.info(msg)
+
+    logging.info(f"accuracy={accuracy}\n")
 
 if __name__ == '__main__':
     main()
