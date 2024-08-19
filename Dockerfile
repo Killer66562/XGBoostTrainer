@@ -2,6 +2,7 @@ FROM python:3.11-slim
 
 WORKDIR /opt
 RUN mkdir xgboost
+RUN mkdir xgboost/models
 
 COPY src/train.py xgboost
 COPY src/datasets xgboost/datasets
