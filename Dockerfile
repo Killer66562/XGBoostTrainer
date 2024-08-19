@@ -4,10 +4,12 @@ WORKDIR /opt
 RUN mkdir xgboost
 
 COPY src/train.py xgboost
-COPY src/datasets xgboost
+COPY src/datasets xgboost/datasets
 
 COPY requirements.txt .
 
 RUN pip install --no-cache-dir -r requirements.txt
 
-ENTRYPOINT [ "python", "xgboost/train.py" ]
+WORKDIR /opt/xgboost
+
+ENTRYPOINT [ "python", "train.py" ]

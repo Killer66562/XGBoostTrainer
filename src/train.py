@@ -1,5 +1,6 @@
 from typing import Any
 from xgboost.callback import TrainingCallback
+from datetime import datetime, timezone, timedelta
 
 import argparse
 import logging
@@ -7,6 +8,7 @@ import sklearn.metrics
 import sklearn.model_selection
 import xgboost
 import sklearn
+import joblib
 import pandas as pd
 
 
@@ -35,7 +37,7 @@ def main():
     parser = argparse.ArgumentParser(description="XGBoost")
     parser.add_argument("--lr", type=float, default=0.01, metavar="LR",
                         help="learning rate (default: 0.01)")
-    parser.add_argument("--ne", type=int, default=1000, metavar="NE", 
+    parser.add_argument("--ne", type=int, default=2000, metavar="NE", 
                         help="n estimators (default:1000)")
     parser.add_argument("--rs", type=int, default=1, metavar="RS",
                         help="random state (default: 1)")
@@ -51,6 +53,10 @@ def main():
                         help="Assign the path of x_train_csv", metavar="y-train-path")
     parser.add_argument("--y_test_path", type=str, default="datasets/y_test.csv",
                         help="Assign the path of x_train_csv", metavar="y-test-path")
+    parser.add_argument("--save_model", type=bool, default=False, 
+                        help="Save model or not", metavar="save-model")
+    parser.add_argument("--model_folder_path", type=str, default="models", 
+                        help="The folder to save the model", metavar="model-folder-path")
 
     args = parser.parse_args()
 
@@ -81,7 +87,24 @@ def main():
     y_pred = model.predict(x_test_df.values)
     accuracy = sklearn.metrics.accuracy_score(y_test_df.values, y_pred)
 
-    logging.info(f"accuracy={accuracy}\n")
+    logging.info(f"accuracy={accuracy}")
+
+    if args.save_model is True:
+        lr_str = "lr-" + str(args.lr)
+        ne_str = "ne-" + str(args.ne)
+        rs_str = "rs-" + str(args.rs)
+        booster_str = "booster-" + str(args.booster)
+        current_time_str = datetime.now(tz=timezone(offset=timedelta(hours=8))).strftime("%Y-%m-%d-%H-%M-%S")
+        str_list = [lr_str, ne_str, rs_str, booster_str, current_time_str]
+        model_name = "_".join(str_list) + ".model"
+        model_folder_path_processed = str(args.model_folder_path)
+        while model_folder_path_processed.endswith("/"):
+            model_folder_path_processed = model_folder_path_processed.removesuffix("/")
+        model_path = f"{model_folder_path_processed}/{model_name}"
+
+        joblib.dump(model, model_path)
+
+        logging.info(f"model_path={model_path}")
 
 if __name__ == '__main__':
     main()
