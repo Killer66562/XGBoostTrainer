@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Literal
 from xgboost.callback import TrainingCallback
 from datetime import datetime, timezone, timedelta
 
@@ -22,7 +22,30 @@ class CustomCallback(TrainingCallback):
         if epoch % self._iters_per_log == 0:
             logging.info(f"epoch: {epoch} / {self._max_iters}")
         return False
+    
 
+def train(
+    x_train_df: pd.DataFrame, 
+    y_train_df: pd.DataFrame, 
+    n_estimators: int = 2000, 
+    learning_rate: float = 0.01, 
+    booster: Literal['gbtree', 'gblinear', 'dart'] = 'gbtree', 
+    device: Literal['cpu', 'gpu', 'cuda'] = 'cuda', 
+    iters_per_log: int = 100):
+    model = xgboost.XGBClassifier(
+        n_estimators=n_estimators, 
+        learning_rate=learning_rate, 
+        booster=booster, 
+        device=device, 
+        callbacks=[CustomCallback(iters_per_log=iters_per_log, max_iters=n_estimators)]
+    )
+    model.fit(x_train_df, y_train_df)
+    return model
+
+def test(model, x_test_df: pd.DataFrame, y_test_df: pd.DataFrame) -> float:
+    y_pred = model.predict(x_test_df)
+    accuracy = sklearn.metrics.accuracy_score(y_test_df, y_pred)
+    return accuracy
 
 def main():
     '''
@@ -35,12 +58,14 @@ def main():
     '''
     # Training settings
     parser = argparse.ArgumentParser(description="XGBoost")
+    parser.add_argument("--epochs", type=int, default=10, metavar="EP",
+                        help="epochs (default: 10)")
     parser.add_argument("--lr", type=float, default=0.01, metavar="LR",
                         help="learning rate (default: 0.01)")
     parser.add_argument("--ne", type=int, default=2000, metavar="NE", 
                         help="n estimators (default:1000)")
-    parser.add_argument("--rs", type=int, default=1, metavar="RS",
-                        help="random state (default: 1)")
+    parser.add_argument("--rs", type=int, default=42, metavar="RS",
+                        help="random state (default: 42)")
     parser.add_argument("--booster", type=str, choices=["gbtree", "gblinear", "dart"], default="gbtree", 
                         help="Choose the booster", metavar="B")
     parser.add_argument("--device", type=str, choices=["cpu", "gpu", "cuda"], default="cuda", 
@@ -73,23 +98,38 @@ def main():
     x_test_df = pd.read_csv(args.x_test_path)
     y_test_df = pd.read_csv(args.y_test_path)
 
-    model = xgboost.XGBClassifier(
-        n_estimators=args.ne, 
-        learning_rate=args.lr, 
-        booster=args.booster, 
-        device=args.device, 
-        callbacks=[CustomCallback(iters_per_log=100, max_iters=args.ne)]
-    )
-    model.fit(x_train_df.values, y_train_df.values)
-    
-    logging.info("Done!")
+    best_model = None
+    best_accuracy = 0
 
-    y_pred = model.predict(x_test_df.values)
-    accuracy = sklearn.metrics.accuracy_score(y_test_df.values, y_pred)
+    logging.info(f"Trying to use device: {args.device}")
+    logging.info("")
 
-    logging.info(f"accuracy={accuracy}")
+    for i in range(1, args.epochs + 1):
+        logging.info(f"round={i}")
+        logging.info(f"nlearning_rate={args.lr}")
+        logging.info(f"n_estimators={args.ne}")
+        logging.info(f"random_state={args.rs}")
+        logging.info(f"booster={args.booster}")
 
-    if args.save_model is True:
+        model = train(
+            x_train_df=x_train_df, 
+            y_train_df=y_train_df, 
+            n_estimators=args.ne, 
+            learning_rate=args.lr, 
+            booster=args.booster, 
+            device=args.device
+        )
+        accuracy = test(model=model, x_test_df=x_test_df, y_test_df=y_test_df)
+        if accuracy > best_accuracy:
+            best_accuracy = accuracy
+            best_model = model
+        
+        logging.info(f"accuracy={accuracy}")
+        logging.info("")
+
+    logging.info("Training ends!")
+
+    if args.save_model is True and best_model is not None:
         lr_str = "lr-" + str(args.lr)
         ne_str = "ne-" + str(args.ne)
         rs_str = "rs-" + str(args.rs)
@@ -102,7 +142,7 @@ def main():
             model_folder_path_processed = model_folder_path_processed.removesuffix("/")
         model_path = f"{model_folder_path_processed}/{model_name}"
 
-        joblib.dump(model, model_path)
+        joblib.dump(best_model, model_path)
 
         logging.info(f"model_path={model_path}")
 

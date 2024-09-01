@@ -21,6 +21,7 @@ data:
               command:
                 - "python3"
                 - "/opt/xgboost/train.py"
+                - "--epochs=${trialParameters.epochs}"
                 - "--lr=${trialParameters.learningRate}"
                 - "--ne=${trialParameters.nEstimators}"
                 - "--rs=${trialParameters.randomState}"
