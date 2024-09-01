@@ -106,7 +106,7 @@ def main():
 
     for i in range(1, args.epochs + 1):
         logging.info(f"round={i}")
-        logging.info(f"nlearning_rate={args.lr}")
+        logging.info(f"learning_rate={args.lr}")
         logging.info(f"n_estimators={args.ne}")
         logging.info(f"random_state={args.rs}")
         logging.info(f"booster={args.booster}")
@@ -119,6 +119,7 @@ def main():
             booster=args.booster, 
             device=args.device
         )
+        
         accuracy = test(model=model, x_test_df=x_test_df, y_test_df=y_test_df)
         if accuracy > best_accuracy:
             best_accuracy = accuracy
