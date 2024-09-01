@@ -31,6 +31,6 @@ data:
                 - "--x_test_path=datasets/x_test.csv"
                 - "--y_train_path=datasets/y_train.csv"
                 - "--y_test_path=datasets/y_test.csv"
-                - "--save_model="False"
+                - "--save_model=False"
                 - "--model_folder_path=models"
           restartPolicy: Never
