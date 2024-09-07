@@ -34,3 +34,30 @@ data:
                 - "--save_model=False"
                 - "--model_folder_path=models"
           restartPolicy: Never
+  rfcTemplate: |-
+    apiVersion: batch/v1
+    kind: Job
+    spec:
+      template:
+        metadata:
+          annotations:
+            "sidecar.istio.io/inject": "false"
+        spec:
+          containers:
+            - name: training-container
+              image: docker.io/killer66562/rfc-trainer:latest
+              command:
+                - "python3"
+                - "/opt/rfc/train.py"
+                - "--ne=5000"
+                - "--rs=42"
+                - "--mss=${trialParameters.minSamplesSplit}"
+                - "--msl=${trialParameters.minSamplesLeaf}"
+                - "--ccp_a=${trialParameters.ccpAlpha}"
+                - "--x_train_path=datasets/x_train.csv"
+                - "--x_test_path=datasets/x_test.csv"
+                - "--y_train_path=datasets/y_train.csv"
+                - "--y_test_path=datasets/y_test.csv"
+                - "--save_model=False"
+                - "--model_folder_path=models"
+          restartPolicy: Never
