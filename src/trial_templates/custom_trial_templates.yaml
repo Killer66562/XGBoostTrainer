@@ -77,7 +77,7 @@ data:
                 - "python3"
                 - "/opt/xgboost/train.py"
                 - "--lr=${trialParameters.learningRate}"
-                - "--ne=5000"
+                - "--ne=2000"
                 - "--rs=42"
                 - "--esp=1000"
                 - "--booster=gbtree"

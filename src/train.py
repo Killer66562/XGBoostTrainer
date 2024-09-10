@@ -32,7 +32,8 @@ class CustomCallback(TrainingCallback):
 def train(
     xgtrain: xgboost.DMatrix, 
     xgtest: xgboost.DMatrix, 
-    learning_rate: float = 0.3, 
+    learning_rate: float = 0.01, 
+    min_split_loss: float = 0,
     n_estimators: int = 2000, 
     random_state: int = 42, 
     early_stopping_rounds: int = 1000, 
@@ -43,6 +44,7 @@ def train(
         'booster': booster, 
         'device': device, 
         'eta': learning_rate, 
+        'gamma': min_split_loss, 
         'objective': 'binary:logistic', 
         'eval_metric': 'error', 
         'seed': random_state
@@ -78,8 +80,10 @@ def main():
     parser = argparse.ArgumentParser(description="XGBoost")
     parser.add_argument("--lr", type=float, default=0.3, metavar="LR",
                         help="learning rate (default: 0.3)")
-    parser.add_argument("--ne", type=int, default=2000, metavar="NE", 
-                        help="n estimators (default:2000)")
+    parser.add_argument("--mss", type=float, default=0, metavar="LR",
+                        help="min split loss (default: 0)")
+    parser.add_argument("--ne", type=int, default=1000, metavar="NE", 
+                        help="n estimators (default:1000)")
     parser.add_argument("--rs", type=int, default=42, metavar="RS",
                         help="random state (default: 42)")
     parser.add_argument("--esp", type=int, default=1000, metavar="ESP", 
@@ -129,6 +133,7 @@ def main():
         xgtrain=xgtrain, 
         xgtest=xgtest, 
         learning_rate=args.lr, 
+        min_split_loss=args.mss, 
         n_estimators=args.ne, 
         random_state=args.rs, 
         booster=args.booster, 
@@ -137,11 +142,12 @@ def main():
 
     if args.save_model is True and model is not None:
         lr_str = "lr-" + str(args.lr)
+        mss_str = "mss-" + str(args.mss)
         ne_str = "ne-" + str(args.ne)
         rs_str = "rs-" + str(args.rs)
         booster_str = "booster-" + str(args.booster)
         current_time_str = datetime.now(tz=timezone(offset=timedelta(hours=8))).strftime("%Y-%m-%d-%H-%M-%S")
-        str_list = [lr_str, ne_str, rs_str, booster_str, current_time_str]
+        str_list = [lr_str, mss_str, ne_str, rs_str, booster_str, current_time_str]
         model_name = "_".join(str_list) + ".pkl"
         model_folder_path_processed = str(args.model_folder_path)
         while model_folder_path_processed.endswith("/"):
